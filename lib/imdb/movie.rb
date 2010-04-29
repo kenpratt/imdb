@@ -23,6 +23,10 @@ module Imdb
       document.search("table.cast td.nm a").map { |link| link.innerHTML.strip.imdb_unescape_html } rescue []
     end
     
+    def cast_member_ids
+      document.search("table.cast td.nm a").map {|l| l['href'].sub(%r{^/name/(.*)/}, '\1') }
+    end
+    
     # Returns the name of the director
     def director
       # document.at("h5[text()='Director:'] ~ a").innerHTML.strip.imdb_unescape_html rescue nil
@@ -86,12 +90,12 @@ module Imdb
     
     # Returns an integer containing the year (CCYY) the movie was released in.
     def year
-      document.search('a[@href^="/Sections/Years/"]').innerHTML.to_i
+      document.search('a[@href^="/year/"]').innerHTML.to_i
     end
     
     # Returns release date for the movie.
     def release_date
-      Hpricot(document.search('h5[text()*=Release Date]').first.next_sibling.to_s.gsub(/<a.*a>/,'')).inner_text.strip rescue nil
+      sanitize_release_date(document.search('h5[text()*=Release Date]').first.next_sibling.innerHTML.to_s) rescue nil
     end
 
     private
@@ -120,10 +124,19 @@ module Imdb
                                    
       the_plot = the_plot.gsub(/add\ssummary|full\ssummary/i, "")
       the_plot = the_plot.gsub(/add\ssynopsis|full\ssynopsis/i, "")
-      the_plot = the_plot.gsub(/more/i, "")
+      the_plot = the_plot.gsub(/&nbsp;|&raquo;/i, "")
+      the_plot = the_plot.gsub(/see|more/i, "")
       the_plot = the_plot.gsub(/\|/i, "")
       
       the_plot = the_plot.strip.imdb_unescape_html
+    end
+    
+    def sanitize_release_date(the_release_date)
+      the_release_date = the_release_date.gsub(/<a.*a>/,"")
+      the_release_date = the_release_date.gsub(/&nbsp;|&raquo;/i, "")
+      the_release_date = the_release_date.gsub(/see|more/i, "")
+      
+      the_release_date = the_release_date.strip.imdb_unescape_html
     end
     
   end # Movie
